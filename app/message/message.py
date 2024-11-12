@@ -8,14 +8,13 @@ from app.conf import ModuleConf
 from app.helper import DbHelper, SubmoduleHelper
 from app.message.message_center import MessageCenter
 from app.utils import StringUtils, ExceptionUtils
-from app.utils.commons import singleton
+from app.utils.commons import SingletonMeta
 from app.utils.types import SearchType, MediaType
 from config import Config
 from web.backend.web_utils import WebUtils
 
 
-@singleton
-class Message(object):
+class Message(metaclass=SingletonMeta):
     dbhelper = None
     messagecenter = None
     _message_schemas = []
@@ -95,7 +94,7 @@ class Message(object):
         state, ret_msg = self.__build_class(ctype=ctype,
                                             conf=config).send_msg(title="测试",
                                                                   text="这是一条测试消息",
-                                                                  url="https://github.com/NAStool/nas-tools")
+                                                                  url="https://github.com/linyuan0213/nas-tools")
         if not state:
             log.error(f"【Message】{ctype} 发送测试消息失败：%s" % ret_msg)
         return state

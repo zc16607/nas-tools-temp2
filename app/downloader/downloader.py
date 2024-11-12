@@ -5,6 +5,8 @@ import json
 import re
 from urllib.parse import urlsplit
 
+from app.downloader.client._base import _IDownloadClient
+from app.entities import torrent
 import log
 from app.conf import ModuleConf
 from app.conf import SystemConfig
@@ -17,7 +19,7 @@ from app.message import Message
 from app.plugins import EventManager
 from app.sites import Sites, SiteSubtitle, SiteConf
 from app.utils import Torrent, StringUtils, SystemUtils, ExceptionUtils, NumberUtils, RequestUtils, JsonUtils
-from app.utils.commons import singleton
+from app.utils.commons import SingletonMeta
 from app.utils.types import MediaType, DownloaderType, SearchType, RmtMode, EventType, SystemConfigKey
 from config import MT_URL, Config, PT_TAG, RMT_MEDIAEXT, PT_TRANSFER_INTERVAL
 
@@ -28,8 +30,7 @@ lock = Lock()
 client_lock = Lock()
 
 
-@singleton
-class Downloader:
+class Downloader(metaclass=SingletonMeta):
     # 客户端实例
     clients = {}
 
@@ -244,7 +245,7 @@ class Downloader:
         # self._scheduler.print_jobs(jobstore=self._jobstore)
         log.info("下载文件转移服务启动，目的目录：媒体库")
 
-    def __get_client(self, did=None):
+    def __get_client(self, did=None) -> _IDownloadClient:
         if not did:
             return None
         downloader_conf = self.get_downloader_conf(did)
@@ -607,7 +608,7 @@ class Downloader:
                                                         tags=task.get("tags"))
                 log.info(f"【Downloader】下载器 {name} 下载文件转移结束")
 
-    def get_torrents(self, downloader_id=None, ids=None, tag=None):
+    def get_torrents(self, downloader_id=None, ids=None, tag=None) -> list[torrent.Torrent]:
         """
         获取种子信息
         :param downloader_id: 下载器ID
@@ -648,7 +649,7 @@ class Downloader:
         torrents.sort(key=lambda x: x.get("name"))
         return torrents
 
-    def get_downloading_torrents(self, downloader_id=None, ids=None, tag=None):
+    def get_downloading_torrents(self, downloader_id=None, ids=None, tag=None) -> list[torrent.Torrent]:
         """
         查询正在下载中的种子信息
         :return: 下载器名称，发生错误时返回None
@@ -681,7 +682,7 @@ class Downloader:
             tag = None
         return _client.get_downloading_progress(tag=tag, ids=ids)
 
-    def get_completed_torrents(self, downloader_id=None, ids=None, tag=None):
+    def get_completed_torrents(self, downloader_id=None, ids=None, tag=None) -> list[torrent.Torrent]:
         """
         查询下载完成的种子列表
         :param downloader_id: 下载器ID
@@ -1591,3 +1592,14 @@ class Downloader:
                if token:
                    return f'{base_url}/api/torrent/download1?token={token}'
                return ''
+
+    def get_free_space(self, downloader_id,  path: str):
+        """
+        获取磁盘剩余空间
+        """
+        if not downloader_id:
+            downloader_id = self.default_downloader_id
+        _client = self.__get_client(downloader_id)
+        if not _client:
+            return None
+        return _client.get_free_space(path)

@@ -14,13 +14,12 @@ from urllib.parse import urlsplit
 from app.helper.drissionpage_helper import DrissionPageHelper
 from app.sites import Sites
 from app.utils import ExceptionUtils, StringUtils, RequestUtils, JsonUtils
-from app.utils.commons import singleton
+from app.utils.commons import SingletonMeta
 from config import MT_URL, Config
 import log
 
 
-@singleton
-class SiteConf:
+class SiteConf(metaclass=SingletonMeta):
     # 站点签到支持的识别XPATH
     _SITE_CHECKIN_XPATH = [
         '//a[@id="signed"]',
@@ -84,10 +83,12 @@ class SiteConf:
     _RSS_SITE_GRAP_CONF = {}
 
     # 种子详情
-    _URL_DETAIL_TEMPLATES = {
+    URL_DETAIL_TEMPLATES = {
+        'm-team': '/detail/{tid}',
         'fsm': "/api/Torrents/details?tid={tid}&page=1",
         'yemapt': "/api/torrent/fetchTorrentDetail?id={tid}&firstView=false",
-        'star-space': "/p_torrent/video_detail.php?tid={tid}"
+        'star-space': "/p_torrent/video_detail.php?tid={tid}",
+        'default': '/details.php?id={tid}'
     }
     def __init__(self):
         self.init_config()
@@ -119,7 +120,7 @@ class SiteConf:
         return {}
 
     def get_tid_and_url(self, torrent_url):
-        for key in self._URL_DETAIL_TEMPLATES:
+        for key in self.URL_DETAIL_TEMPLATES:
             if key in torrent_url:
                 if key == 'star-space':
                     tid = re.findall(r'tid=(\d+)', torrent_url)[0] or ""
@@ -128,7 +129,7 @@ class SiteConf:
                     
                 split_url = urlsplit(torrent_url)
                 base_url = f"{split_url.scheme}://{split_url.netloc}"
-                return f"{base_url}{self._URL_DETAIL_TEMPLATES[key].format(tid=tid)}"
+                return f"{base_url}{self.URL_DETAIL_TEMPLATES[key].format(tid=tid)}"
         
         return torrent_url  # 如果不匹配任何 key，返回原始 URL
 

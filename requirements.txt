@@ -1,4 +1,4 @@
-alembic==1.9.4
+alembic==1.13.3
 aniso8601==9.0.1
 APScheduler==3.10.0
 asttokens==2.0.8
@@ -16,7 +16,7 @@ cryptography==43.0.1
 DBUtils==3.0.2
 dateparser==1.1.4
 decorator==5.1.1
-DrissionPage==4.1.0.0b14
+DrissionPage==4.1.0.9
 executing==1.1.0
 fast-bencode==1.1.6
 feapder==1.9.0
@@ -79,12 +79,12 @@ slack-bolt==1.18.1
 soupsieve==2.3.2.post1
 SQLAlchemy==2.0.4
 srt==3.5.2
-transmission-rpc==7.0.10
+transmission-rpc==7.0.11
 typing-extensions==4.10.0
 tzdata==2022.2
 tzlocal==4.2
 urllib3==2.2.2
 watchdog==2.1.9
 websockets==10.3
-Werkzeug==3.0.3
+Werkzeug==3.0.6
 zhconv==1.4.3

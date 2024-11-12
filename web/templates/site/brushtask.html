@@ -233,6 +233,12 @@
                   </div>
                 </div>
                 <div class="datagrid-item">
+                  <div class="datagrid-title">开启时间段</div>
+                  <div class="datagrid-content">
+                    {{ Task.time_range or ''}}
+                  </div>
+                </div>
+                <div class="datagrid-item">
                   <div class="datagrid-title">状态</div>
                   <div class="datagrid-content">
                     {% if Task.state == 'Y' %}
@@ -333,12 +339,20 @@
               <input type="text" id="brushtask_label" class="form-control" placeholder="多个标签使用,分隔">
             </div>
           </div>
-          <div class="col-lg-8">
+          <div class="col-lg-4">
             <div class="mb-3">
               <label class="form-label">保存目录 <span class="form-help"
                                                            title="为该刷新任务设置独立的保存目录，将会覆盖下载器中的目录设置，如果下载器为Qbittorrent还需要在NAStool下载器设置中关闭种子自动管理功能"
                                                            data-bs-toggle="tooltip">?</span></label>
               <input type="text" id="brushtask_savepath" class="form-control" placeholder="留空使用下载器设置">
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="mb-3">
+              <label class="form-label">开启时间段 <span class="form-help"
+                                                           title="为该刷新任务设置独立的刷流时间段格式为HH:MM-HH:MM，为空不开启"
+                                                           data-bs-toggle="tooltip">?</span></label>
+              <input type="text" id="brushtask_time_range" class="form-control" placeholder="">
             </div>
           </div>
         </div>
@@ -375,6 +389,15 @@
         </div>
         <div class="hr-text hr-text-center hr-text-spaceless mt-1 mb-3">选种规则（与）</div>
         <div class="row">
+          <div class="col-lg-4">
+            <div class="mb-3">
+              <label class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="brushtask_exclude_subscribe">
+                <span class="form-check-label">排除订阅 <span class="form-help" title="开启后任务不会下载在订阅中的剧集"
+                                                              data-bs-toggle="tooltip">?</span></span>
+              </label>
+            </div>
+          </div>
           <div class="col-lg-4">
             <div class="mb-3">
               <label class="form-label">促销 <span class="form-help"
@@ -534,7 +557,20 @@
             </div>
           </div>
         </div>
-        <div class="hr-text hr-text-center hr-text-spaceless mt-1 mb-3">删种规则（或）</div>
+        <div class="hr-text hr-text-center hr-text-spaceless mt-1 mb-3">删种规则</div>
+        <div class="row">
+          <div class="col-lg-4">
+            <div class="mb-3">
+              <label class="form-label">删种模式 <span class="form-help"
+                                                   title="或模式 满足其中一个删除 与模式全部满足删除"
+                                                   data-bs-toggle="tooltip">?</span></label>
+              <select class="form-select" id="brushtask_mode">
+                <option value="or" selected>或</option>
+                <option value="and">与</option>
+              </select>
+            </div>
+          </div>
+        </div>
         <div class="row">
           <div class="col-lg-4">
             <div class="mb-3">
@@ -730,6 +766,40 @@
               </div>
             </div>
           </div>
+          <div class="col-lg-4">
+            <div class="mb-3">
+              <label class="form-label">磁盘剩余空间(GB)<span class="form-help"
+                                                                 title="检查周期内磁盘剩余空间低于设定值时删除下载任务"
+                                                                 data-bs-toggle="tooltip">?</span></label>
+              <div class="input-group">
+                <button type="button" class="btn dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true"
+                        aria-expanded="false" id="brushtask_freespace_btn">
+                  忽略
+                </button>
+                <input type="hidden" id="brushtask_freespace_do">
+                <div class="dropdown-menu" style="">
+                  <a class="dropdown-item" id="brushtask_freespace_do_" href="javascript:void(0)"
+                     onclick="filter_item_change('', 'brushtask_freespace',$(this))">
+                    忽略
+                  </a>
+                  <a class="dropdown-item" id="brushtask_freespace_do_lt" href="javascript:void(0)"
+                     onclick="filter_item_change('lt', 'brushtask_freespace',$(this))">
+                    小于
+                  </a>
+                </div>
+                <input type="text" class="form-control" id="brushtask_freespace" readonly>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="mb-3">
+              <label class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="brushtask_freestatus">
+                <span class="form-check-label">Free 到期 <span class="form-help" title="开启后Free到期后会自动删除种子"
+                                                              data-bs-toggle="tooltip">?</span></span>
+              </label>
+            </div>
+          </div>
         </div>
         <div class="hr-text hr-text-center hr-text-spaceless mt-1 mb-3">停种规则（或）</div>
         <div class="row">
@@ -737,7 +807,7 @@
             <div class="mb-3">
               <label class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="brushtask_stopfree">
-                <span class="form-check-label">Free 到期暂停 <span class="form-help" title="开启后free到期后会自动暂停种子"
+                <span class="form-check-label">Free 到期 <span class="form-help" title="开启后free到期后会自动暂停种子"
                                                               data-bs-toggle="tooltip">?</span></span>
               </label>
             </div>
@@ -816,6 +886,7 @@
         $("#brushtask_exclude").val(ret.task.rss_rule.exclude);
         $("#brushtask_label").val(ret.task.label);
         $("#brushtask_savepath").val(ret.task.savepath);
+        $("#brushtask_time_range").val(ret.task.time_range);
         //种子大小
         if (ret.task.rss_rule.size) {
           let size_str = ret.task.rss_rule.size.split('#');
@@ -831,6 +902,13 @@
           }
           let peercount_strs = peercount_str.split('#');
           filter_item_change(peercount_strs[0], 'brushtask_peercount', $('#brushtask_peercount_do_' + peercount_strs[0]), peercount_strs[1])
+        }
+
+        // 排除订阅
+        if (ret.task.rss_rule.exclude_subscribe === "Y") {
+          $("#brushtask_exclude_subscribe").prop("checked", true);
+        } else {
+          $("#brushtask_exclude_subscribe").prop("checked", false);
         }
         //做种时间
         if (ret.task.remove_rule.time) {
@@ -887,6 +965,24 @@
           $("#brushtask_stopfree").prop("checked", true);
         } else {
           $("#brushtask_stopfree").prop("checked", false);
+        }
+
+        //磁盘剩余空间
+        if (ret.task.remove_rule.freespace) {
+          let freespace_str = ret.task.remove_rule.freespace.split('#');
+          filter_item_change(freespace_str[0], 'brushtask_freespace', $('#brushtask_freespace_do_' + freespace_str[0]), freespace_str[1])
+        }
+        
+        // 删种模式
+        if (ret.task.remove_rule.mode) {
+          $("#brushtask_mode").val(ret.task.remove_rule.mode);
+        }
+
+        // 暂停种子
+        if (ret.task.remove_rule.freestatus === "Y") {
+          $("#brushtask_freestatus").prop("checked", true);
+        } else {
+          $("#brushtask_freestatus").prop("checked", false);
         }
         //弹窗
         $("#modal-brushtask").modal('show');
@@ -997,10 +1093,12 @@
     let brushtask_rssurl = $("#brushtask_rssurl").val();
     let brushtask_label = $("#brushtask_label").val();
     let brushtask_savepath = $("#brushtask_savepath").val();
+    let brushtask_time_range = $("#brushtask_time_range").val();
     let brushtask_state = $("#brushtask_state").val();
     let brushtask_transfer = $("#brushtask_transfer").prop('checked');
     let brushtask_sendmessage = $("#brushtask_sendmessage").prop('checked');
     let brushtask_free = $("#brushtask_free").val();
+    let brushtask_mode = $("#brushtask_mode").val();
     let brushtask_hr = $("#brushtask_hr").val();
     //种子大小
     let brushtask_torrent_size_do = $("#brushtask_torrent_size_do").val();
@@ -1187,6 +1285,25 @@
     // 暂停种子
     let brushtask_stopfree = $("#brushtask_stopfree").prop('checked');
 
+    //磁盘剩余空间
+    let brushtask_freespace_do = $("#brushtask_freespace_do").val();
+    let brushtask_freespace = $("#brushtask_freespace").val();
+    if (brushtask_freespace_do && !brushtask_freespace) {
+      $("#brushtask_freespace").addClass("is-invalid");
+      return;
+    } else {
+      if (brushtask_freespace && isNaN(brushtask_freespace)) {
+        $("#brushtask_freespace").addClass("is-invalid");
+        return;
+      }
+      $("#brushtask_freespace").removeClass("is-invalid");
+    }
+
+    // 排除订阅
+    let brushtask_exclude_subscribe = $("#brushtask_exclude_subscribe").prop('checked');
+
+    // Free到期删种
+    let brushtask_freestatus = $("#brushtask_freestatus").prop('checked');
     // 参数
     const params = {
       brushtask_id: brushtask_id,
@@ -1198,10 +1315,12 @@
       brushtask_totalsize: brushtask_totalsize,
       brushtask_label: brushtask_label,
       brushtask_savepath: brushtask_savepath,
+      brushtask_time_range: brushtask_time_range,
       brushtask_state: brushtask_state,
       brushtask_transfer: brushtask_transfer,
       brushtask_sendmessage: brushtask_sendmessage,
       brushtask_free: brushtask_free,
+      brushtask_mode: brushtask_mode,
       brushtask_hr: brushtask_hr,
       brushtask_torrent_size: brushtask_torrent_size_do + "#" + brushtask_torrent_size,
       brushtask_include: brushtask_include,
@@ -1219,7 +1338,10 @@
       brushtask_downspeed: brushtask_downspeed,
       brushtask_pubdate: brushtask_pubdate_do + "#" + brushtask_pubdate,
       brushtask_pending_time: brushtask_pending_time_do + "#" + brushtask_pending_time,
-      brushtask_stopfree: brushtask_stopfree
+      brushtask_stopfree: brushtask_stopfree,
+      brushtask_freespace: brushtask_freespace_do + "#" + brushtask_freespace,
+      brushtask_exclude_subscribe: brushtask_exclude_subscribe,
+      brushtask_freestatus: brushtask_freestatus,
     };
 
     ajax_post("add_brushtask", params, function (ret) {
