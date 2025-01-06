@@ -5,12 +5,12 @@ from app.utils import StringUtils, RequestUtils
 from config import Config
 
 
-class BTSchool(_ISiteSigninHandler):
+class YemaPT(_ISiteSigninHandler):
     """
     学校签到
     """
     # 匹配的站点Url，每一个实现类都需要设置为自己的站点Url
-    site_url = "pt.btschool.club"
+    site_url = "yemapt.org"
 
     # 已签到
     _sign_text = '每日签到'
@@ -39,41 +39,42 @@ class BTSchool(_ISiteSigninHandler):
         chrome = DrissionPageHelper()
         if site_info.get("chrome") and chrome.get_status():
             self.info(f"{site} 开始仿真签到")
-            msg, html_text = self.__chrome_visit(chrome=chrome,
-                                                 url="https://pt.btschool.club/index.php",
-                                                 ua=ua,
-                                                 site_cookie=site_cookie,
-                                                 proxy=proxy,
-                                                 site=site)
-            # 仿真访问失败
-            if msg:
-                return False, msg
 
-            # 已签到
-            if self._sign_text not in html_text:
-                self.info("今日已签到")
-                return True, f'【{site}】今日已签到'
+            # 访问首页
+            html_text = chrome.get_page_html(url="https://www.yemapt.org/#/index",
+                                             cookies=site_cookie,
+                                             delay=5
+                                             )
+            # 签到
+            if "注册新用户" not in html_text:
+                html_text = chrome.get_page_html(url="https://www.yemapt.org/#/consumer/checkIn",
+                                    cookies=site_cookie,
+                                    click_xpath='xpath://li[contains(@data-menu-id, "/consumer/checkIn")]',
+                                    delay=2
+                                    )
+                if html_text and "已签到" in html_text:
+                    self.info("今日已签到")
+                    return True, f'【{site}】今日已签到'
+            
+                html_text = chrome.get_page_html(url="https://www.yemapt.org/#/consumer/checkIn",
+                                    cookies=site_cookie,
+                                    click_xpath='xpath://span[@class="ant-statistic-content-suffix"]',
+                                    delay=2
+                                    )
+                # 签到成功
+                if html_text and "已签到" in html_text:
+                    self.info("签到成功")
+                    return True, f'【{site}】签到成功'
+            else:
+                self.error("签到失败，签到接口请求失败")
+                return False, f'【{site}】签到失败，cookie失效'
 
-            # 仿真签到
-            msg, html_text = self.__chrome_visit(chrome=chrome,
-                                                 url="https://pt.btschool.club/index.php?action=addbonus",
-                                                 ua=ua,
-                                                 site_cookie=site_cookie,
-                                                 proxy=proxy,
-                                                 site=site)
-            if msg:
-                return False, msg
-
-            # 签到成功
-            if self._sign_text not in html_text:
-                self.info("签到成功")
-                return True, f'【{site}】签到成功'
         else:
             self.info(f"{site} 开始签到")
             html_res = RequestUtils(cookies=site_cookie,
                                     headers=ua,
                                     proxies=proxy
-                                    ).get_res(url="https://pt.btschool.club")
+                                    ).get_res(url="https://www.yemapt.org/api/consumer/checkIn")
             if not html_res or html_res.status_code != 200:
                 self.error("签到失败，请检查站点连通性")
                 return False, f'【{site}】签到失败，请检查站点连通性'
@@ -90,7 +91,7 @@ class BTSchool(_ISiteSigninHandler):
             sign_res = RequestUtils(cookies=site_cookie,
                                     headers=ua,
                                     proxies=proxy
-                                    ).get_res(url="https://pt.btschool.club/index.php?action=addbonus")
+                                    ).get_res(url="https://www.yemapt.org/api/consumer/checkIn")
             if not sign_res or sign_res.status_code != 200:
                 self.error("签到失败，签到接口请求失败")
                 return False, f'【{site}】签到失败，签到接口请求失败'
@@ -100,15 +101,3 @@ class BTSchool(_ISiteSigninHandler):
                 self.info("签到成功")
                 return True, f'【{site}】签到成功'
 
-    def __chrome_visit(self, chrome, url, ua, site_cookie, proxy, site):
-        html_text = chrome.get_page_html(url=url, cookies=site_cookie)
-
-        if not html_text:
-            self.warn("%s 获取站点源码失败" % site)
-            return f"【{site}】仿真签到失败，获取站点源码失败！", None
-        if "魔力值" not in html_text:
-            self.error("签到失败，站点无法访问")
-            return f'【{site}】仿真签到失败，站点无法访问', None
-
-        # 站点访问正常，返回html
-        return None, html_text

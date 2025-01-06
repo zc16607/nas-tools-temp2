@@ -1,11 +1,10 @@
+from concurrent.futures import ThreadPoolExecutor
 import copy
 import re
 import json
 from datetime import datetime, timedelta
-from multiprocessing.dummy import Pool as ThreadPool
 from threading import Event
 from time import sleep
-from urllib.parse import urlsplit
 
 import pytz
 from lxml import etree
@@ -342,7 +341,7 @@ class AutoSignIn(_IPluginModule):
         sign_sites = new_sign_sites
         # 执行签到
         self.info("开始执行签到任务")
-        with ThreadPool(min(len(sign_sites), int(self._queue_cnt) if self._queue_cnt else 10)) as p:
+        with ThreadPoolExecutor(min(len(sign_sites), int(self._queue_cnt) if self._queue_cnt else 10)) as p:
             status = p.map(self.signin_site, sign_sites)
 
         if status:
@@ -490,18 +489,9 @@ class AutoSignIn(_IPluginModule):
                 home_url = StringUtils.get_base_url(site_url)
                 if "1ptba" in home_url:
                     home_url = f"{home_url}/index.php"
-                tries = 3
-                html_text = ''
-                while tries > 0:
-                    try:
-                        html_text = chrome.get_page_html(url=home_url, ua=ua, cookies=site_cookie, proxies=Config().get_proxies() if site_info.get("proxy") else None)
-                        if html_text:
-                            break
-                    except Exception as e:
-                        self.debug(f'获取网页HTML失败： {str(e)} 重试中...')
-                    finally:
-                        tries -= 1
-                        sleep(2)
+
+                html_text = chrome.get_page_html(url=home_url, cookies=site_cookie)
+
                 if not html_text:
                     self.warn("%s 无法打开网站" % site)
                     return f"【{site}】仿真签到失败，无法打开网站！"
@@ -525,22 +515,10 @@ class AutoSignIn(_IPluginModule):
                         return f"【{site}】模拟登录失败！"
                 # 开始仿真
                 try:
-                    tries = 3
-                    html_text = ''
-                    while tries > 0:
-                        try:
-                            html_text = chrome.get_page_html(url=home_url,
-                                    ua=ua,
-                                    cookies=site_cookie,
-                                    proxies=Config().get_proxies() if site_info.get("proxy") else None,
-                                    callback=lambda page: page(f'x:{xpath_str}').click(by_js=True))
-                            if html_text:
-                                break
-                        except Exception as e:
-                            self.debug(f'获取网页HTML失败： {str(e)} 重试中...')
-                        finally:
-                            tries -= 1
-                            sleep(2)
+                    html_text = chrome.get_page_html(url=home_url,
+                            cookies=site_cookie,
+                            click_xpath=f'xpath:{xpath_str}')
+
                     if not html_text:
                         self.info("%s 仿真签到失败，无法通过Cloudflare" % site)
                         return f"【{site}】仿真签到失败，无法通过Cloudflare！"

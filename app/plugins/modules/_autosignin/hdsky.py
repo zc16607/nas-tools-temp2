@@ -62,6 +62,7 @@ class HDSky(_ISiteSigninHandler):
         while not img_hash and res_times <= 3:
             image_res = RequestUtils(cookies=site_cookie,
                                      headers=ua,
+                                     referer="https://hdsky.me/index.php",
                                      proxies=proxy
                                      ).post_res(url='https://hdsky.me/image_code_ajax.php',
                                                 data={'action': 'new'})
@@ -107,6 +108,7 @@ class HDSky(_ISiteSigninHandler):
                 # 访问签到链接
                 res = RequestUtils(cookies=site_cookie,
                                    headers=ua,
+                                   referer="https://hdsky.me/index.php",
                                    proxies=proxy
                                    ).post_res(url='https://hdsky.me/showup.php', data=data)
                 if res and res.status_code == 200:

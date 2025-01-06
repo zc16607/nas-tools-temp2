@@ -370,7 +370,6 @@ class Qbittorrent(_IDownloadClient):
                             break
                     if not tacker_key_flag:
                         continue
-            #TODO
             if qb_state and torrent.status.name not in qb_state:
                 continue
             if qb_category and torrent.category not in qb_category:
@@ -519,7 +518,7 @@ class Qbittorrent(_IDownloadClient):
                                             torrent_files=torrent_files,
                                             save_path=save_path,
                                             category=category,
-                                            is_paused=is_paused,
+                                            is_stopped=is_paused,
                                             tags=tags,
                                             content_layout=content_layout,
                                             upload_limit=upload_limit,
